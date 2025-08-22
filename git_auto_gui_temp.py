@@ -1,0 +1,1 @@
+# Dosyanın son kısmını temizleyeceğim
