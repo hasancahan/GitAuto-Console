@@ -38,7 +38,7 @@ class GitAutoGUI:
         
         # Adım yönetimi
         self.current_step = 0
-        self.total_steps = 5
+        self.total_steps = 6
         
         # Log mesajları için queue
         self.log_queue = queue.Queue()
@@ -204,12 +204,14 @@ class GitAutoGUI:
         self.prev_button = ttk.Button(nav_frame, text="⬅️ Önceki", 
                                      command=self.previous_step, 
                                      style="Secondary.TButton",
-                                     state="disabled")
+                                     state="disabled",
+                                     width=15)
         self.prev_button.grid(row=0, column=0, padx=(0, 10))
         
         self.next_button = ttk.Button(nav_frame, text="Sonraki ➡️", 
                                     command=self.next_step, 
-                                    style="Primary.TButton")
+                                    style="Primary.TButton",
+                                    width=15)
         self.next_button.grid(row=0, column=1, padx=(10, 0))
         
         # Log frame - her adımda görünür
@@ -249,13 +251,14 @@ class GitAutoGUI:
         step_names = [
             "Proje Bilgileri",
             "README.md Yönetimi", 
+            "AI README Oluşturucu",
             "Git Durumu",
             "Branch Yönetimi",
             "Repository İşlemleri"
         ]
         
-        self.step_label.config(text=f"Adım {step_number + 1}/5: {step_names[step_number]}")
-        self.step_progress['value'] = (step_number + 1) * 20
+        self.step_label.config(text=f"Adım {step_number + 1}/6: {step_names[step_number]}")
+        self.step_progress['value'] = (step_number + 1) * 16.67
         
         # Navigasyon butonlarını güncelle
         if step_number == 0:
@@ -263,9 +266,10 @@ class GitAutoGUI:
         else:
             self.prev_button.config(state="normal")
             
-        if step_number == self.total_steps - 1:
-            self.next_button.config(state="disabled")
+        if step_number == self.total_steps - 1:  # Son adım (Adım 5)
+            self.next_button.grid_remove()  # "Sonraki" butonunu tamamen gizle
         else:
+            self.next_button.grid()  # "Sonraki" butonunu göster
             self.next_button.config(state="normal")
         
         # Adıma özel içeriği göster
@@ -274,10 +278,12 @@ class GitAutoGUI:
         elif step_number == 1:
             self.show_readme_step()
         elif step_number == 2:
-            self.show_git_status_step()
+            self.show_ai_readme_step()
         elif step_number == 3:
-            self.show_branch_step()
+            self.show_git_status_step()
         elif step_number == 4:
+            self.show_branch_step()
+        elif step_number == 5:
             self.show_repository_step()
 
     def show_project_info_step(self):
@@ -327,18 +333,18 @@ class GitAutoGUI:
         readme_frame.grid(row=0, column=0, sticky=(tk.W, tk.E), pady=(0, 20))
         readme_frame.columnconfigure(0, weight=1)
         
-        # README seçenekleri
-        readme_keep = ttk.Radiobutton(readme_frame, text="📝 Mevcut README.md'yi koru (önerilen)", 
+        # README seçenekleri - 3 seçenek
+        readme_keep = ttk.Radiobutton(readme_frame, text="📝 Mevcut README.md'yi koru", 
                                      variable=self.readme_var, value="keep")
         readme_keep.grid(row=0, column=0, sticky=tk.W, pady=(0, 15))
         
-        readme_create = ttk.Radiobutton(readme_frame, text="🔄 GitAuto ile yeni README.md oluştur", 
-                                       variable=self.readme_var, value="create")
-        readme_create.grid(row=1, column=0, sticky=tk.W, pady=(0, 15))
+        readme_ai = ttk.Radiobutton(readme_frame, text="🤖 GitAuto AI ile yeni README.md oluştur", 
+                                   variable=self.readme_var, value="ai")
+        readme_ai.grid(row=1, column=0, sticky=tk.W, pady=(0, 15))
         
-        readme_view = ttk.Radiobutton(readme_frame, text="👁️ Mevcut README.md'yi görüntüle", 
-                                     variable=self.readme_var, value="view")
-        readme_view.grid(row=2, column=0, sticky=tk.W, pady=(0, 15))
+        readme_none = ttk.Radiobutton(readme_frame, text="🚫 README olmadan devam et (README.md silinecek)", 
+                                     variable=self.readme_var, value="none")
+        readme_none.grid(row=2, column=0, sticky=tk.W, pady=(0, 15))
         
         # README önizleme butonu
         preview_btn = ttk.Button(readme_frame, text="👁️ README Önizle", 
@@ -350,16 +356,16 @@ class GitAutoGUI:
         repo_status_frame.grid(row=4, column=0, sticky=(tk.W, tk.E), pady=(20, 0))
         repo_status_frame.columnconfigure(0, weight=1)
         
-        # Repository durumu etiketi
+        # Repository durumu etiketi - ortada
         self.repo_status_readme_label = ttk.Label(repo_status_frame, 
                                                  text="Repository durumu kontrol ediliyor...", 
                                                  font=("Segoe UI", 10))
-        self.repo_status_readme_label.grid(row=0, column=0, sticky=tk.W, pady=(0, 15))
+        self.repo_status_readme_label.grid(row=0, column=0, sticky=(tk.W, tk.E), pady=(0, 15))
         
-        # Repository bağlama butonu (sadece repository yoksa görünür)
+        # Repository bağlama butonu (sadece repository yoksa görünür) - ortada
         self.connect_button_readme = ttk.Button(repo_status_frame, text="🔗 Repository Bağla", 
                                                command=self.connect_repository, style="Primary.TButton")
-        self.connect_button_readme.grid(row=1, column=0, pady=(0, 15))
+        self.connect_button_readme.grid(row=1, column=0, sticky=(tk.W, tk.E), pady=(0, 15))
         
         # Repository durumunu kontrol et ve butonları güncelle
         self.update_readme_repo_status()
@@ -400,19 +406,15 @@ class GitAutoGUI:
                 try:
                     self.repo_status_readme_label.config(text="✅ Git repository mevcut ve sağlıklı", foreground="green")
                     self.connect_button_readme.grid_remove()  # Butonu gizle
-                    self.log_message("✅ README: Repository mevcut - Bağlama butonu gizlendi")
                 except tk.TclError:
-                    # Widget referans hatası durumunda sadece log'a yaz
-                    self.log_message("⚠️ README widget'ları güncellenirken referans hatası")
+                    pass  # Widget referans hatası durumunda sessizce devam et
             else:
                 # Repository yoksa
                 try:
                     self.repo_status_readme_label.config(text="❌ Git repository bulunamadı", foreground="red")
                     self.connect_button_readme.grid()  # Butonu göster
-                    self.log_message("❌ README: Repository bulunamadı - Bağlama butonu gösterildi")
                 except tk.TclError:
-                    # Widget referans hatası durumunda sadece log'a yaz
-                    self.log_message("⚠️ README widget'ları güncellenirken referans hatası")
+                    pass  # Widget referans hatası durumunda sessizce devam et
                 
         except Exception as e:
             # Widget mevcutsa hata mesajını göster
@@ -514,43 +516,848 @@ class GitAutoGUI:
                                   command=self.check_git_status, style="Accent.TButton")
         git_check_btn.grid(row=2, column=0, columnspan=2, pady=(15, 0))
 
+    def show_ai_readme_step(self):
+        """Adım 3: AI README Oluşturucu"""
+        ai_frame = ttk.LabelFrame(self.content_frame, text="🤖 AI README Oluşturucu", padding="20")
+        ai_frame.grid(row=0, column=0, sticky=(tk.W, tk.E), pady=(0, 20))
+        ai_frame.columnconfigure(0, weight=1)
+        
+        # Gemini API Key girişi
+        api_key_label = ttk.Label(ai_frame, text="🔑 Gemini API Key:", font=("Segoe UI", 10, "bold"))
+        api_key_label.grid(row=0, column=0, sticky=tk.W, pady=(0, 5))
+        
+        self.gemini_api_key = tk.StringVar()
+        api_key_entry = ttk.Entry(ai_frame, textvariable=self.gemini_api_key, width=50, show="*")
+        api_key_entry.grid(row=1, column=0, sticky=(tk.W, tk.E), pady=(0, 15))
+        
+        # AI README oluştur butonu
+        ai_button = ttk.Button(ai_frame, text="🤖 AI ile README Oluştur", 
+                               command=self.create_ai_readme, style="Primary.TButton")
+        ai_button.grid(row=2, column=0, pady=(0, 15))
+        
+        # Geri dönüş butonu
+        back_btn = ttk.Button(ai_frame, text="⬅️ README Yönetimine Dön", 
+                             command=lambda: self.show_step(1), style="Secondary.TButton")
+        back_btn.grid(row=3, column=0, pady=(15, 0))
+        
+        # Bilgi etiketi
+        info_label = ttk.Label(ai_frame, 
+                              text="💡 Gemini AI ile proje kodlarını analiz edip profesyonel README.md oluşturur.\n🔑 API Key'i https://aistudio.google.com/ adresinden alabilirsiniz.",
+                              font=("Segoe UI", 10),
+                              foreground="#64748b",
+                              justify="center")
+        info_label.grid(row=4, column=0, pady=(15, 0))
+
     def show_repository_step(self):
-        """Adım 5: Repository işlemleri"""
+        """Adım 6: Repository işlemleri"""
         repo_frame = ttk.LabelFrame(self.content_frame, text="🚀 Repository Yayınlama", padding="20")
         repo_frame.grid(row=0, column=0, sticky=(tk.W, tk.E), pady=(0, 20))
         repo_frame.columnconfigure(0, weight=1)
         
-        # Ana işlem butonu - Adım 5'te direkt aktif
-        self.main_button = ttk.Button(repo_frame, text="🚀 Repository'yi Yayınla", 
+        # Tüm dosyaları yayınla butonu - Ana işlem
+        self.main_button = ttk.Button(repo_frame, text="🚀 Tüm Dosyaları Yayınla", 
                                       command=self.start_publication, style="Primary.TButton",
                                       state="normal")
         self.main_button.grid(row=0, column=0, pady=(0, 15))
         
         # Bilgi etiketi
         info_label = ttk.Label(repo_frame, 
-                              text="💡 Repository bağlama işlemi README.md adımında yapılmıştır.\n🚀 Yayınlama butonu aktif - Dosyaları yayınlayabilirsiniz!",
+                              text="💡 Repository bağlama işlemi README.md adımında yapılmıştır.\n🚀 Şimdi tüm proje dosyalarını yayınlayabilirsiniz!",
                               font=("Segoe UI", 10),
                               foreground="#64748b",
                               justify="center")
-        info_label.grid(row=1, column=0, pady=(15, 0))
+        info_label.grid(row=1, column=0, pady=(15, 15))
+        
+        # Bitir butonu
+        finish_button = ttk.Button(repo_frame, text="🏁 Bitir ve Çık", 
+                                  command=self.finish_application, style="Success.TButton")
+        finish_button.grid(row=2, column=0, pady=(0, 0))
 
     def next_step(self):
         """Sonraki adıma geç"""
         # Adım 1 (Proje Bilgileri) bitince repository kontrolü yap
         if self.current_step == 0:  # Proje Bilgileri adımından sonra
-            self.log_message("🔍 Adım 1 tamamlandı - Repository durumu kontrol ediliyor...")
             self.check_repository_status()
-            
-            # Repository durumuna göre UI'ı güncelle
             self.refresh_ui_after_repo_check()
         
         # README adımından sonra repository kontrolü yap
         elif self.current_step == 1:  # README adımından sonra
             if not self.check_repository_before_proceed():
                 return
+            
+            readme_choice = self.readme_var.get()
+            
+            if readme_choice == "keep":
+                # Mevcut README korunacak - önce README.md dosyası var mı kontrol et
+                readme_path = os.path.join(self.current_directory, "README.md")
+                if not os.path.exists(readme_path):
+                    # README.md dosyası yoksa hata ver
+                    messagebox.showerror(
+                        "README Hatası", 
+                        "❌ README.md dosyası bulunamadı!\n\n"
+                        "📝 'Mevcut README.md'yi koru' seçeneği seçildi ancak\n"
+                        "proje klasöründe README.md dosyası bulunmuyor.\n\n"
+                        "💡 Lütfen:\n"
+                        "• '🤖 GitAuto AI ile yeni README.md oluştur' seçeneğini seçin\n"
+                        "• Veya '🚫 README olmadan devam et' seçeneğini seçin"
+                    )
+                    return  # İlerlemeyi engelle
+                
+                # README.md varsa - adım 3 atlanır
+                self.log_message("📝 Mevcut README korunacak - AI README adımı atlanıyor")
+                self.show_step(3)  # Git Durumu adımına git
+                return
+            elif readme_choice == "none":
+                # README olmadan devam et - mevcut README varsa sil, adım 3 atlanır
+                self.handle_readme_none_choice()
+                self.log_message("🚫 README olmadan devam ediliyor - AI README adımı atlanıyor")
+                self.show_step(3)  # Git Durumu adımına git
+                return
+            elif readme_choice == "ai":
+                # AI README oluşturulacak - normal akış devam eder
+                self.log_message("🤖 AI README oluşturulacak - AI adımına gidiliyor")
+                # Normal akış devam eder (adım 3'e git)
+            else:
+                # Varsayılan olarak mevcut README koru
+                self.readme_var.set("keep")
+                self.log_message("📝 Varsayılan seçim: Mevcut README korunacak")
+                self.show_step(3)
+                return
         
         if self.current_step < self.total_steps - 1:
             self.show_step(self.current_step + 1)
+
+    def create_ai_readme(self):
+        """Gemini AI ile README oluştur"""
+        try:
+            api_key = self.gemini_api_key.get().strip()
+            if not api_key:
+                messagebox.showerror("Hata", "Gemini API Key gerekli!")
+                return
+            
+            if not self.current_directory:
+                messagebox.showerror("Hata", "Önce proje klasörü seçin!")
+                return
+            
+            # AI README oluşturma işlemini başlat
+            self.log_message("🤖 AI README oluşturma başlatılıyor...")
+            
+            # Thread'de çalıştır
+            threading.Thread(target=self.create_ai_readme_worker, args=(api_key,), daemon=True).start()
+            
+        except Exception as e:
+            error_msg = str(e)
+            self.log_message(f"❌ AI README oluşturma hatası: {error_msg}")
+            messagebox.showerror("Hata", f"AI README oluşturma hatası:\n{error_msg}")
+
+    def create_ai_readme_worker(self, api_key):
+        """AI README oluşturma işlemi - arka planda çalışır"""
+        try:
+            self.log_message("🔍 Proje dosyaları analiz ediliyor...")
+            
+            # Proje analizi yap
+            project_analysis = self.analyze_project_for_ai()
+            
+            self.log_message("🤖 Gemini AI'ya gönderiliyor...")
+            
+            # Gemini API çağrısı
+            readme_content = self.call_gemini_api(api_key, project_analysis)
+            
+            if readme_content:
+                # Mevcut README varsa yedekle
+                readme_path = os.path.join(self.current_directory, "README.md")
+                backup_path = os.path.join(self.current_directory, "README.md.backup")
+                
+                if os.path.exists(readme_path):
+                    # Mevcut README'yi yedekle
+                    import shutil
+                    shutil.copy2(readme_path, backup_path)
+                    self.log_message("💾 Mevcut README.md yedeklendi (README.md.backup)")
+                
+                # Yeni AI README oluştur
+                with open(readme_path, "w", encoding="utf-8") as f:
+                    f.write(readme_content)
+                
+                self.log_message("✅ AI README başarıyla oluşturuldu!")
+                
+                # Başarı mesajı göster
+                backup_info = "\n💾 Mevcut README yedeklendi (README.md.backup)" if os.path.exists(backup_path) else ""
+                self.root.after(0, lambda: messagebox.showinfo(
+                    "Başarılı! 🎉",
+                    "🤖 AI README başarıyla oluşturuldu!\n\n"
+                    "📝 README.md dosyası proje klasörüne kaydedildi." + backup_info + "\n"
+                    "💡 Şimdi README.md Yönetimi adımında düzenleyebilirsiniz."
+                ))
+                
+                # README adımına git
+                self.root.after(0, lambda: self.show_step(1))
+            else:
+                raise Exception("Gemini API'den yanıt alınamadı")
+                
+        except Exception as e:
+            error_msg = str(e)
+            self.log_message(f"❌ AI README oluşturma hatası: {error_msg}")
+            self.root.after(0, lambda msg=error_msg: messagebox.showerror("Hata", f"AI README oluşturma hatası:\n{msg}"))
+
+    def analyze_project_for_ai(self):
+        """Proje dosyalarını AI analizi için hazırla - DETAYLI ANALİZ"""
+        try:
+            analysis = {
+                "project_name": self.project_name.get().strip(),
+                "files": [],
+                "folders": [],
+                "technologies": [],
+                "config_files": [],
+                "main_files": [],
+                "code_analysis": {
+                    "imports": [],
+                    "functions": [],
+                    "classes": [],
+                    "dependencies": [],
+                    "variables": [],
+                    "comments": [],
+                    "project_purpose": ""
+                }
+            }
+            
+            self.log_message("🔍 Proje dosyaları detaylı analiz ediliyor...")
+            
+            # Dosya ve klasörleri tara
+            for root, dirs, files in os.walk(self.current_directory):
+                # .git klasörünü atla
+                if '.git' in root:
+                    continue
+                    
+                # Klasör yapısı
+                rel_path = os.path.relpath(root, self.current_directory)
+                if rel_path != '.':
+                    analysis["folders"].append(rel_path)
+                
+                # Dosyaları analiz et
+                for file in files:
+                    file_path = os.path.join(root, file)
+                    rel_file_path = os.path.join(rel_path, file)
+                    
+                    # Dosya bilgisi
+                    file_info = {
+                        "name": file,
+                        "path": rel_file_path,
+                        "size": os.path.getsize(file_path),
+                        "extension": os.path.splitext(file)[1]
+                    }
+                    
+                    # Teknoloji tespiti
+                    if file in ['package.json', 'requirements.txt', 'pom.xml', 'build.gradle', 'Cargo.toml', 'go.mod', 'composer.json', 'Gemfile']:
+                        analysis["config_files"].append(file_info)
+                        analysis["technologies"].append(self.detect_technology_from_config(file))
+                        # Konfigürasyon dosyası içeriğini analiz et
+                        config_analysis = self.analyze_config_file(file_path, file)
+                        if config_analysis:
+                            analysis["code_analysis"]["dependencies"].extend(config_analysis)
+                    elif file_info["extension"] in ['.py', '.js', '.ts', '.java', '.cpp', '.cs', '.php', '.rb', '.go', '.rs', '.vue', '.jsx', '.tsx']:
+                        analysis["main_files"].append(file_info)
+                        analysis["technologies"].append(self.detect_technology_from_extension(file_info["extension"]))
+                        
+                        # Kod dosyası içeriğini DETAYLI analiz et
+                        self.log_message(f"📖 Analiz ediliyor: {rel_file_path}")
+                        code_analysis = self.analyze_code_file_detailed(file_path, file_info["extension"])
+                        if code_analysis:
+                            analysis["code_analysis"]["imports"].extend(code_analysis.get("imports", []))
+                            analysis["code_analysis"]["functions"].extend(code_analysis.get("functions", []))
+                            analysis["code_analysis"]["classes"].extend(code_analysis.get("classes", []))
+                            analysis["code_analysis"]["variables"].extend(code_analysis.get("variables", []))
+                            analysis["code_analysis"]["comments"].extend(code_analysis.get("comments", []))
+                    
+                    analysis["files"].append(file_info)
+            
+            # Teknolojileri benzersiz yap
+            analysis["technologies"] = list(set(analysis["technologies"]))
+            
+            # Proje amacını tespit et
+            analysis["code_analysis"]["project_purpose"] = self.detect_project_purpose(analysis)
+            
+            self.log_message(f"✅ Analiz tamamlandı: {len(analysis['main_files'])} kod dosyası, {len(analysis['code_analysis']['imports'])} import bulundu")
+            
+            return analysis
+            
+        except Exception as e:
+            self.log_message(f"❌ Proje analizi hatası: {e}")
+            return None
+
+    def detect_technology_from_config(self, filename):
+        """Konfigürasyon dosyasından teknoloji tespit et"""
+        tech_map = {
+            'package.json': 'Node.js/JavaScript',
+            'requirements.txt': 'Python',
+            'pom.xml': 'Java Maven',
+            'build.gradle': 'Java Gradle',
+            'Cargo.toml': 'Rust',
+            'go.mod': 'Go',
+            'composer.json': 'PHP',
+            'Gemfile': 'Ruby'
+        }
+        return tech_map.get(filename, 'Unknown')
+
+    def detect_technology_from_extension(self, extension):
+        """Dosya uzantısından teknoloji tespit et"""
+        tech_map = {
+            '.py': 'Python',
+            '.js': 'JavaScript',
+            '.ts': 'TypeScript',
+            '.java': 'Java',
+            '.cpp': 'C++',
+            '.cs': 'C#',
+            '.php': 'PHP',
+            '.rb': 'Ruby',
+            '.go': 'Go',
+            '.rs': 'Rust'
+        }
+        return tech_map.get(extension, 'Unknown')
+
+    def analyze_config_file(self, file_path, filename):
+        """Konfigürasyon dosyasının içeriğini analiz et"""
+        try:
+            with open(file_path, 'r', encoding='utf-8') as f:
+                content = f.read()
+            
+            dependencies = []
+            
+            if filename == 'package.json':
+                # Node.js dependencies
+                import json
+                try:
+                    data = json.loads(content)
+                    if 'dependencies' in data:
+                        dependencies.extend(list(data['dependencies'].keys()))
+                    if 'devDependencies' in data:
+                        dependencies.extend(list(data['devDependencies'].keys()))
+                except:
+                    pass
+                    
+            elif filename == 'requirements.txt':
+                # Python dependencies
+                for line in content.split('\n'):
+                    line = line.strip()
+                    if line and not line.startswith('#') and not line.startswith('--'):
+                        # Sadece paket adını al (versiyon bilgisini çıkar)
+                        package = line.split('==')[0].split('>=')[0].split('<=')[0].split('~=')[0].split('!=')[0]
+                        dependencies.append(package.strip())
+                        
+            elif filename == 'pom.xml':
+                # Java Maven dependencies
+                import re
+                dependencies = re.findall(r'<artifactId>([^<]+)</artifactId>', content)
+                
+            elif filename == 'build.gradle':
+                # Java Gradle dependencies
+                import re
+                dependencies = re.findall(r"implementation\s+['\"]([^'\"]+)['\"]", content)
+                dependencies.extend(re.findall(r"compile\s+['\"]([^'\"]+)['\"]", content))
+                
+            elif filename == 'Cargo.toml':
+                # Rust dependencies
+                import re
+                dependencies = re.findall(r'^([a-zA-Z0-9_-]+)\s*=', content, re.MULTILINE)
+                
+            elif filename == 'go.mod':
+                # Go dependencies
+                import re
+                dependencies = re.findall(r'^require\s+([a-zA-Z0-9\._-]+)', content, re.MULTILINE)
+                
+            elif filename == 'composer.json':
+                # PHP dependencies
+                import json
+                try:
+                    data = json.loads(content)
+                    if 'require' in data:
+                        dependencies.extend(list(data['require'].keys()))
+                except:
+                    pass
+                    
+            elif filename == 'Gemfile':
+                # Ruby dependencies
+                import re
+                dependencies = re.findall(r"gem\s+['\"]([^'\"]+)['\"]", content)
+            
+            return dependencies
+            
+        except Exception as e:
+            return []
+
+    def analyze_code_file(self, file_path, extension):
+        """Kod dosyasının içeriğini analiz et"""
+        try:
+            with open(file_path, 'r', encoding='utf-8') as f:
+                content = f.read()
+            
+            analysis = {
+                "imports": [],
+                "functions": [],
+                "classes": []
+            }
+            
+            import re
+            
+            if extension == '.py':
+                # Python analizi
+                # Import satırları
+                imports = re.findall(r'^(?:from|import)\s+([\w\s,\.]+)', content, re.MULTILINE)
+                analysis["imports"] = [imp.strip() for imp in imports if imp.strip()]
+                
+                # Fonksiyon tanımları
+                functions = re.findall(r'^def\s+([a-zA-Z_][a-zA-Z0-9_]*)\s*\(', content, re.MULTILINE)
+                analysis["functions"] = functions
+                
+                # Class tanımları
+                classes = re.findall(r'^class\s+([a-zA-Z_][a-zA-Z0-9_]*)\s*(?:\(|:)', content, re.MULTILINE)
+                analysis["classes"] = classes
+                
+            elif extension in ['.js', '.ts', '.jsx', '.tsx']:
+                # JavaScript/TypeScript analizi
+                # Import/require satırları
+                imports = re.findall(r'^(?:import|require|from)\s+([\w\s,\.\{\}]+)', content, re.MULTILINE)
+                analysis["imports"] = [imp.strip() for imp in imports if imp.strip()]
+                
+                # Fonksiyon tanımları
+                functions = re.findall(r'(?:function\s+([a-zA-Z_][a-zA-Z0-9_]*)|const\s+([a-zA-Z_][a-zA-Z0-9_]*)\s*=\s*\(|let\s+([a-zA-Z_][a-zA-Z0-9_]*)\s*=\s*\()', content)
+                # Regex gruplarından fonksiyon adlarını çıkar
+                func_names = []
+                for match in functions:
+                    func_names.extend([name for name in match if name])
+                analysis["functions"] = func_names
+                
+                # Class tanımları
+                classes = re.findall(r'class\s+([a-zA-Z_][a-zA-Z0-9_]*)\s*(?:extends|implements|\{)', content)
+                analysis["classes"] = classes
+                
+            elif extension == '.java':
+                # Java analizi
+                # Import satırları
+                imports = re.findall(r'^import\s+([\w\.]+)', content, re.MULTILINE)
+                analysis["imports"] = imports
+                
+                # Fonksiyon tanımları
+                functions = re.findall(r'(?:public|private|protected|static)?\s*(?:final)?\s*(?:[a-zA-Z<>\[\]]+)\s+([a-zA-Z_][a-zA-Z0-9_]*)\s*\(', content)
+                analysis["functions"] = functions
+                
+                # Class tanımları
+                classes = re.findall(r'class\s+([a-zA-Z_][a-zA-Z0-9_]*)\s*(?:extends|implements|\{)', content)
+                analysis["classes"] = classes
+                
+            elif extension == '.cpp':
+                # C++ analizi
+                # Include satırları
+                imports = re.findall(r'^#include\s+[<"]([^>"]+)[>"]', content, re.MULTILINE)
+                analysis["imports"] = imports
+                
+                # Fonksiyon tanımları
+                functions = re.findall(r'([a-zA-Z_][a-zA-Z0-9_]*)\s+[a-zA-Z_][a-zA-Z0-9_]*\s*\([^)]*\)\s*\{', content)
+                analysis["functions"] = functions
+                
+                # Class tanımları
+                classes = re.findall(r'class\s+([a-zA-Z_][a-zA-Z0-9_]*)\s*(?:\{|:)', content)
+                analysis["classes"] = classes
+                
+            elif extension == '.php':
+                # PHP analizi
+                # Use satırları
+                imports = re.findall(r'^use\s+([\w\\]+)', content, re.MULTILINE)
+                analysis["imports"] = imports
+                
+                # Fonksiyon tanımları
+                functions = re.findall(r'function\s+([a-zA-Z_][a-zA-Z0-9_]*)\s*\(', content)
+                analysis["functions"] = functions
+                
+                # Class tanımları
+                classes = re.findall(r'class\s+([a-zA-Z_][a-zA-Z0-9_]*)\s*(?:extends|implements|\{)', content)
+                analysis["classes"] = classes
+                
+            elif extension == '.go':
+                # Go analizi
+                # Import satırları
+                imports = re.findall(r'^import\s+([\w\s"\.]+)', content, re.MULTILINE)
+                analysis["imports"] = [imp.strip() for imp in imports if imp.strip()]
+                
+                # Fonksiyon tanımları
+                functions = re.findall(r'func\s+([a-zA-Z_][a-zA-Z0-9_]*)\s*\(', content)
+                analysis["functions"] = functions
+                
+                # Struct tanımları
+                classes = re.findall(r'type\s+([a-zA-Z_][a-zA-Z0-9_]*)\s+struct', content)
+                analysis["classes"] = classes
+                
+            elif extension == '.rs':
+                # Rust analizi
+                # Use satırları
+                imports = re.findall(r'^use\s+([\w\s:]+)', content, re.MULTILINE)
+                analysis["imports"] = [imp.strip() for imp in imports if imp.strip()]
+                
+                # Fonksiyon tanımları
+                functions = re.findall(r'fn\s+([a-zA-Z_][a-zA-Z0-9_]*)\s*\(', content)
+                analysis["functions"] = functions
+                
+                # Struct tanımları
+                classes = re.findall(r'struct\s+([a-zA-Z_][a-zA-Z0-9_]*)\s*\{', content)
+                analysis["classes"] = classes
+            
+            return analysis
+            
+        except Exception as e:
+            return {}
+
+    def analyze_code_file_detailed(self, file_path, extension):
+        """Kod dosyasının içeriğini DETAYLI analiz et - Gerçek dosya okuma"""
+        try:
+            # Dosyayı UTF-8 ile oku
+            with open(file_path, 'r', encoding='utf-8', errors='ignore') as f:
+                content = f.read()
+            
+            analysis = {
+                "imports": [],
+                "functions": [],
+                "classes": [],
+                "variables": [],
+                "comments": []
+            }
+            
+            import re
+            
+            if extension == '.py':
+                # Python DETAYLI analizi
+                # Import satırları
+                imports = re.findall(r'^(?:from|import)\s+([\w\s,\.]+)', content, re.MULTILINE)
+                analysis["imports"] = [imp.strip() for imp in imports if imp.strip()]
+                
+                # Fonksiyon tanımları
+                functions = re.findall(r'^def\s+([a-zA-Z_][a-zA-Z0-9_]*)\s*\(', content, re.MULTILINE)
+                analysis["functions"] = functions
+                
+                # Class tanımları
+                classes = re.findall(r'^class\s+([a-zA-Z_][a-zA-Z0-9_]*)\s*(?:\(|:)', content, re.MULTILINE)
+                analysis["classes"] = classes
+                
+                # Önemli değişkenler
+                variables = re.findall(r'^([A-Z_][A-Z0-9_]*)\s*=', content, re.MULTILINE)
+                analysis["variables"] = [var for var in variables if len(var) > 2]
+                
+                # Yorumlar
+                comments = re.findall(r'#\s*(.+)', content)
+                analysis["comments"] = [comment.strip() for comment in comments if len(comment.strip()) > 10]
+                
+            elif extension in ['.js', '.ts', '.jsx', '.tsx']:
+                # JavaScript/TypeScript DETAYLI analizi
+                # Import/require satırları
+                imports = re.findall(r'^(?:import|require|from)\s+([\w\s,\.\{\}]+)', content, re.MULTILINE)
+                analysis["imports"] = [imp.strip() for imp in imports if imp.strip()]
+                
+                # Fonksiyon tanımları
+                functions = re.findall(r'(?:function\s+([a-zA-Z_][a-zA-Z0-9_]*)|const\s+([a-zA-Z_][a-zA-Z0-9_]*)\s*=\s*\(|let\s+([a-zA-Z_][a-zA-Z0-9_]*)\s*=\s*\()', content)
+                # Regex gruplarından fonksiyon adlarını çıkar
+                func_names = []
+                for match in functions:
+                    func_names.extend([name for name in match if name])
+                analysis["functions"] = func_names
+                
+                # Class tanımları
+                classes = re.findall(r'class\s+([a-zA-Z_][a-zA-Z0-9_]*)\s*(?:extends|implements|\{)', content)
+                analysis["classes"] = classes
+                
+                # Önemli değişkenler
+                variables = re.findall(r'^(?:const|let|var)\s+([A-Z_][A-Z0-9_]*)\s*=', content, re.MULTILINE)
+                analysis["variables"] = [var for var in variables if len(var) > 2]
+                
+                # Yorumlar
+                comments = re.findall(r'//\s*(.+)|/\*\s*(.+?)\*/', content, re.DOTALL)
+                analysis["comments"] = []
+                for comment in comments:
+                    if comment[0]:
+                        analysis["comments"].append(comment[0].strip())
+                    if comment[1]:
+                        analysis["comments"].append(comment[1].strip())
+                analysis["comments"] = [comment for comment in analysis["comments"] if len(comment) > 10]
+                
+            elif extension == '.java':
+                # Java DETAYLI analizi
+                # Import satırları
+                imports = re.findall(r'^import\s+([\w\.]+)', content, re.MULTILINE)
+                analysis["imports"] = imports
+                
+                # Fonksiyon tanımları
+                functions = re.findall(r'(?:public|private|protected|static)?\s*(?:final)?\s*(?:[a-zA-Z<>\[\]]+)\s+([a-zA-Z_][a-zA-Z0-9_]*)\s*\(', content)
+                analysis["functions"] = functions
+                
+                # Class tanımları
+                classes = re.findall(r'class\s+([a-zA-Z_][a-zA-Z0-9_]*)\s*(?:extends|implements|\{)', content)
+                analysis["classes"] = classes
+                
+                # Önemli değişkenler
+                variables = re.findall(r'^(?:public|private|protected|static)?\s*(?:final)?\s*(?:[a-zA-Z<>\[\]]+)\s+([A-Z_][A-Z0-9_]*)\s*;', content, re.MULTILINE)
+                analysis["variables"] = [var for var in variables if len(var) > 2]
+                
+                # Yorumlar
+                comments = re.findall(r'//\s*(.+)|/\*\s*(.+?)\*/', content, re.DOTALL)
+                analysis["comments"] = []
+                for comment in comments:
+                    if comment[0]:
+                        analysis["comments"].append(comment[0].strip())
+                    if comment[1]:
+                        analysis["comments"].append(comment[1].strip())
+                analysis["comments"] = [comment for comment in analysis["comments"] if len(comment) > 10]
+                
+            elif extension == '.cpp':
+                # C++ DETAYLI analizi
+                # Include satırları
+                imports = re.findall(r'^#include\s+[<"]([^>"]+)[>"]', content, re.MULTILINE)
+                analysis["imports"] = imports
+                
+                # Fonksiyon tanımları
+                functions = re.findall(r'([a-zA-Z_][a-zA-Z0-9_]*)\s+[a-zA-Z_][a-zA-Z0-9_]*\s*\([^)]*\)\s*\{', content)
+                analysis["functions"] = functions
+                
+                # Class tanımları
+                classes = re.findall(r'class\s+([a-zA-Z_][a-zA-Z0-9_]*)\s*(?:\{|:)', content)
+                analysis["classes"] = classes
+                
+                # Önemli değişkenler
+                variables = re.findall(r'^(?:int|double|float|string|char|bool)\s+([A-Z_][A-Z0-9_]*)\s*;', content, re.MULTILINE)
+                analysis["variables"] = [var for var in variables if len(var) > 2]
+                
+                # Yorumlar
+                comments = re.findall(r'//\s*(.+)|/\*\s*(.+?)\*/', content, re.DOTALL)
+                analysis["comments"] = []
+                for comment in comments:
+                    if comment[0]:
+                        analysis["comments"].append(comment[0].strip())
+                    if comment[1]:
+                        analysis["comments"].append(comment[1].strip())
+                analysis["comments"] = [comment for comment in analysis["comments"] if len(comment) > 10]
+                
+            elif extension == '.php':
+                # PHP DETAYLI analizi
+                # Use satırları
+                imports = re.findall(r'^use\s+([\w\\]+)', content, re.MULTILINE)
+                analysis["imports"] = imports
+                
+                # Fonksiyon tanımları
+                functions = re.findall(r'function\s+([a-zA-Z_][a-zA-Z0-9_]*)\s*\(', content)
+                analysis["functions"] = functions
+                
+                # Class tanımları
+                classes = re.findall(r'class\s+([a-zA-Z_][a-zA-Z0-9_]*)\s*(?:extends|implements|\{)', content)
+                analysis["classes"] = classes
+                
+                # Önemli değişkenler
+                variables = re.findall(r'^\$([A-Z_][A-Z0-9_]*)\s*=', content, re.MULTILINE)
+                analysis["variables"] = [var for var in variables if len(var) > 2]
+                
+                # Yorumlar
+                comments = re.findall(r'//\s*(.+)|#\s*(.+)|/\*\s*(.+?)\*/', content, re.DOTALL)
+                analysis["comments"] = []
+                for comment in comments:
+                    if comment[0]:
+                        analysis["comments"].append(comment[0].strip())
+                    if comment[1]:
+                        analysis["comments"].append(comment[1].strip())
+                    if comment[2]:
+                        analysis["comments"].append(comment[2].strip())
+                analysis["comments"] = [comment for comment in analysis["comments"] if len(comment) > 10]
+                
+            elif extension == '.go':
+                # Go DETAYLI analizi
+                # Import satırları
+                imports = re.findall(r'^import\s+([\w\s"\.]+)', content, re.MULTILINE)
+                analysis["imports"] = [imp.strip() for imp in imports if imp.strip()]
+                
+                # Fonksiyon tanımları
+                functions = re.findall(r'func\s+([a-zA-Z_][a-zA-Z0-9_]*)\s*\(', content)
+                analysis["functions"] = functions
+                
+                # Struct tanımları
+                classes = re.findall(r'type\s+([a-zA-Z_][a-zA-Z0-9_]*)\s+struct', content)
+                analysis["classes"] = classes
+                
+                # Önemli değişkenler
+                variables = re.findall(r'^var\s+([A-Z_][A-Z0-9_]*)\s*', content, re.MULTILINE)
+                analysis["variables"] = [var for var in variables if len(var) > 2]
+                
+                # Yorumlar
+                comments = re.findall(r'//\s*(.+)|/\*\s*(.+?)\*/', content, re.DOTALL)
+                analysis["comments"] = []
+                for comment in comments:
+                    if comment[0]:
+                        analysis["comments"].append(comment[0].strip())
+                    if comment[1]:
+                        analysis["comments"].append(comment[1].strip())
+                analysis["comments"] = [comment for comment in analysis["comments"] if len(comment) > 10]
+                
+            elif extension == '.rs':
+                # Rust DETAYLI analizi
+                # Use satırları
+                imports = re.findall(r'^use\s+([\w\s:]+)', content, re.MULTILINE)
+                analysis["imports"] = [imp.strip() for imp in imports if imp.strip()]
+                
+                # Fonksiyon tanımları
+                functions = re.findall(r'fn\s+([a-zA-Z_][a-zA-Z0-9_]*)\s*\(', content)
+                analysis["functions"] = functions
+                
+                # Struct tanımları
+                classes = re.findall(r'struct\s+([a-zA-Z_][a-zA-Z0-9_]*)\s*\{', content)
+                analysis["classes"] = classes
+                
+                # Önemli değişkenler
+                variables = re.findall(r'^let\s+([A-Z_][A-Z0-9_]*)\s*:', content, re.MULTILINE)
+                analysis["variables"] = [var for var in variables if len(var) > 2]
+                
+                # Yorumlar
+                comments = re.findall(r'//\s*(.+)|/\*\s*(.+?)\*/', content, re.DOTALL)
+                analysis["comments"] = []
+                for comment in comments:
+                    if comment[0]:
+                        analysis["comments"].append(comment[0].strip())
+                    if comment[1]:
+                        analysis["comments"].append(comment[1].strip())
+                analysis["comments"] = [comment for comment in analysis["comments"] if len(comment) > 10]
+            
+            return analysis
+            
+        except Exception as e:
+            return {}
+
+    def handle_readme_none_choice(self):
+        """README olmadan devam et seçeneği işlenir"""
+        try:
+            readme_path = os.path.join(self.current_directory, "README.md")
+            if os.path.exists(readme_path):
+                # Mevcut README varsa sil
+                os.remove(readme_path)
+                self.log_message("🗑️ Mevcut README.md dosyası silindi")
+            else:
+                self.log_message("ℹ️ README.md dosyası bulunamadı - zaten yok")
+        except Exception as e:
+            self.log_message(f"⚠️ README silme hatası: {e}")
+
+    def detect_project_purpose(self, analysis):
+        """Proje amacını tespit et"""
+        try:
+            purpose_indicators = {
+                "web": ["flask", "django", "express", "react", "vue", "angular", "html", "css", "web"],
+                "api": ["api", "rest", "graphql", "endpoint", "controller", "route"],
+                "desktop": ["tkinter", "pyqt", "wx", "electron", "javafx", "swing"],
+                "mobile": ["react-native", "flutter", "kotlin", "swift", "mobile"],
+                "data": ["pandas", "numpy", "matplotlib", "scikit", "tensorflow", "pytorch", "data"],
+                "game": ["pygame", "unity", "unreal", "game", "sprite", "collision"],
+                "cli": ["click", "argparse", "typer", "command", "cli", "terminal"],
+                "library": ["setup.py", "pyproject.toml", "lib", "module", "package"]
+            }
+            
+            # Teknoloji ve dependency'leri birleştir
+            all_techs = analysis["technologies"] + analysis["code_analysis"]["dependencies"]
+            all_techs = [tech.lower() for tech in all_techs]
+            
+            # Amaç skorları
+            scores = {}
+            for purpose, indicators in purpose_indicators.items():
+                score = sum(1 for indicator in indicators if any(indicator in tech for tech in all_techs))
+                scores[purpose] = score
+            
+            # En yüksek skorlu amacı döndür
+            if scores:
+                best_purpose = max(scores, key=scores.get)
+                if scores[best_purpose] > 0:
+                    return best_purpose
+            
+            return "general"
+            
+        except Exception as e:
+            return "general"
+
+    def call_gemini_api(self, api_key, project_analysis):
+        """Gemini API'yi çağır ve README oluştur"""
+        try:
+            import requests
+            
+            # Gemini API endpoint - güncel model adı ve API versiyonu
+            url = "https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash:generateContent"
+            
+            # Proje analizi metni - DETAYLI ANALİZ
+            analysis_text = f"""
+Proje: {project_analysis['project_name']}
+
+🔍 TEKNOLOJİ ANALİZİ:
+Teknolojiler: {', '.join(project_analysis['technologies'])}
+Proje Amacı: {project_analysis['code_analysis']['project_purpose']}
+
+📦 BAĞIMLILIKLAR:
+Konfigürasyon Dosyaları: {[f['name'] for f in project_analysis['config_files']]}
+Dependencies: {', '.join(project_analysis['code_analysis']['dependencies'][:20])}
+
+📁 DOSYA YAPISI:
+Ana Dosyalar: {[f['name'] for f in project_analysis['main_files'][:15]]}
+Klasör Yapısı: {project_analysis['folders'][:25]}
+
+💻 DETAYLI KOD ANALİZİ:
+Import/Use Satırları: {', '.join(project_analysis['code_analysis']['imports'][:30])}
+Fonksiyonlar: {', '.join(project_analysis['code_analysis']['functions'][:20])}
+Class/Struct'lar: {', '.join(project_analysis['code_analysis']['classes'][:15])}
+Önemli Değişkenler: {', '.join(project_analysis['code_analysis']['variables'][:10])}
+Kod Yorumları: {', '.join(project_analysis['code_analysis']['comments'][:5])}
+
+Bu DETAYLI kod analizi sonucunda, proje için PROFESYONEL ve KAPSAMLI bir README.md oluştur.
+
+README şunları içersin:
+1. 🎯 Proje başlığı ve detaylı açıklaması (proje amacına ve kod analizinden çıkan bilgileri göre)
+2. 🛠️ Teknoloji stack'i ve kullanılan kütüphaneler (import'lardan çıkar)
+3. 📋 Özellikler listesi (fonksiyon ve class'lardan çıkar)
+4. 🚀 Kurulum talimatları (dependencies'e göre)
+5. 💡 Kullanım örnekleri (ana fonksiyonlardan)
+6. 📁 Klasör yapısı ve dosya organizasyonu
+7. 🔧 Konfigürasyon seçenekleri
+
+README'yi sadece markdown formatında döndür, ek açıklama ekleme.
+README profesyonel, açık ve anlaşılır olsun.
+Kod analizinden çıkan bilgileri kullanarak gerçek proje yapısını yansıt.
+"""
+            
+            # API isteği
+            headers = {
+                "Content-Type": "application/json"
+            }
+            
+            data = {
+                "contents": [{
+                    "parts": [{
+                        "text": analysis_text
+                    }]
+                }]
+            }
+            
+            params = {
+                "key": api_key
+            }
+            
+            response = requests.post(url, headers=headers, json=data, params=params)
+            
+            if response.status_code == 200:
+                result = response.json()
+                if 'candidates' in result and len(result['candidates']) > 0:
+                    content = result['candidates'][0]['content']['parts'][0]['text']
+                    return content
+                else:
+                    raise Exception("API yanıtında içerik bulunamadı")
+            else:
+                raise Exception(f"API hatası: {response.status_code} - {response.text}")
+                
+        except ImportError:
+            raise Exception("requests kütüphanesi gerekli! 'pip install requests' komutu ile yükleyin.")
+        except Exception as e:
+            raise Exception(f"Gemini API hatası: {e}")
+
+    def finish_application(self):
+        """Uygulamayı bitir ve çık"""
+        if messagebox.askyesno("🏁 Bitir", 
+                               "GitAuto'yu kapatmak istediğinizden emin misiniz?\n\n"
+                               "Tüm işlemler tamamlandı."):
+            self.root.destroy()
 
     def previous_step(self):
         """Önceki adıma geç"""
@@ -585,6 +1392,24 @@ class GitAutoGUI:
                 messagebox.showerror("Hata", f"README.md okunamadı:\n{e}")
         else:
             messagebox.showinfo("Bilgi", "README.md dosyası bulunamadı.")
+
+    def go_to_ai_readme(self):
+        """AI README oluşturma adımına git"""
+        try:
+            # Proje bilgilerinin dolu olup olmadığını kontrol et
+            if not self.project_name.get().strip():
+                messagebox.showerror("Hata", "Önce Adım 1'de proje adını girin!")
+                return
+            
+            if not self.current_directory:
+                messagebox.showerror("Hata", "Önce Adım 1'de proje klasörünü seçin!")
+                return
+            
+            # AI README adımına git (Adım 3)
+            self.show_step(2)
+            
+        except Exception as e:
+            messagebox.showerror("Hata", f"AI README adımına gidilemedi:\n{e}")
 
     def check_git_status(self):
         """Git durumunu kontrol et - gerçek zamanlı"""
@@ -782,9 +1607,7 @@ class GitAutoGUI:
             repo_exists = os.path.exists(git_dir)
             
             if repo_exists:
-                self.log_message("🔄 Repository mevcut - UI güncelleniyor...")
-                
-                # Repository bilgilerini al
+                # Repository bilgilerini al (sessizce)
                 try:
                     # Aktif branch
                     result = subprocess.run("git branch --show-current", shell=True, 
@@ -801,20 +1624,11 @@ class GitAutoGUI:
                                           capture_output=True, text=True, cwd=self.current_directory, timeout=10)
                     commit_count = result.stdout.strip() if result.returncode == 0 else "0"
                     
-                    self.log_message(f"📊 Repository Bilgileri:")
-                    self.log_message(f"  🌿 Aktif Branch: {current_branch}")
-                    self.log_message(f"  🔗 Remote: {remote_url}")
-                    self.log_message(f"  💾 Commit Sayısı: {commit_count}")
-                    
                 except Exception as e:
-                    self.log_message(f"⚠️ Repository bilgileri alınamadı: {e}")
-                
-                # UI güncellemeleri
-                self.log_message("✅ UI güncellemeleri tamamlandı")
+                    pass  # Sessizce devam et
                 
             else:
-                self.log_message("🆕 Repository bulunamadı - Yeni repository oluşturulabilir")
-                self.log_message("💡 Repository bağlamak için README adımında 'Repository Bağla' butonunu kullanın")
+                self.log_message("💡 Repository bulunamadı - README adımında 'Repository Bağla' butonunu kullanın")
                 
         except Exception as e:
             self.log_message(f"⚠️ UI güncellenirken hata: {e}")
@@ -965,36 +1779,30 @@ class GitAutoGUI:
                         f.write(readme_content)
                     self.log_message("✅ README.md oluşturuldu")
             
-            # 3. Büyük dosyaları kontrol et ve filtrele
-            self.log_message("🔍 Büyük dosyalar kontrol ediliyor...")
-            self.detect_and_filter_large_files()
+            # 3. Sadece README.md ve .gitignore ekle (tüm dosyalar değil)
+            self.log_message("📁 Sadece README.md ve .gitignore ekleniyor...")
             
-            # 4. Önce tüm dosyaları cache'den kaldır ve temizle
-            self.log_message("🧹 Git cache temizleniyor...")
-            try:
-                # Tüm dosyaları cache'den kaldır
-                subprocess.run("git rm -r --cached .", shell=True, capture_output=True, text=True, timeout=30)
-                self.log_message("✅ Git cache temizlendi")
-                
-                # .gitignore'ı güncelle
-                self.update_gitignore_for_large_files()
-                
-                # Sadece gerekli dosyaları ekle (node_modules hariç)
-                self.log_message("📁 Sadece gerekli dosyalar ekleniyor...")
-                
-                # Önce .gitignore'ı ekle
-                subprocess.run("git add .gitignore", shell=True, capture_output=True, text=True, timeout=10)
-                
-                # Sonra diğer dosyaları ekle (node_modules hariç)
-                result = subprocess.run("git add .", shell=True, capture_output=True, text=True, timeout=60)
-            except Exception as e:
-                self.log_message(f"⚠️ Cache temizliği sırasında hata: {e}")
-                # Normal git add yap
-                result = subprocess.run("git add .", shell=True, capture_output=True, text=True, timeout=60)
+            # .gitignore'ı güncelle
+            self.update_gitignore_for_large_files()
             
-            if result.returncode != 0:
-                raise Exception(f"Git add hatası: {result.stderr}")
-            self.log_message("✅ Dosyalar eklendi")
+            # Önce .gitignore'ı ekle
+            subprocess.run("git add .gitignore", shell=True, capture_output=True, text=True, timeout=10)
+            
+            # Sadece README.md ekle (eğer varsa)
+            readme_path = os.path.join(self.current_directory, "README.md")
+            if os.path.exists(readme_path):
+                result = subprocess.run("git add README.md", shell=True, capture_output=True, text=True, timeout=10)
+                if result.returncode != 0:
+                    raise Exception(f"README.md ekleme hatası: {result.stderr}")
+                self.log_message("✅ README.md eklendi")
+            else:
+                self.log_message("⚠️ README.md bulunamadı")
+                result = subprocess.run("git add .", shell=True, capture_output=True, text=True, timeout=10)
+                if result.returncode != 0:
+                    raise Exception(f"Git add hatası: {result.stderr}")
+                self.log_message("✅ Dosyalar eklendi")
+            
+            self.log_message("✅ Sadece gerekli dosyalar eklendi (tüm dosyalar değil)")
             
             # 4. Git commit (konfigürasyon kontrolü ile)
             commit_msg = self.commit_message.get().strip() or "first commit"
@@ -1746,7 +2554,7 @@ ENV/
         threading.Thread(target=list_branches_thread, daemon=True).start()
 
     def start_publication(self):
-        """Repository yayınlama işlemini başlat - Sadece boş commit"""
+        """Repository yayınlama işlemini başlat - Tüm dosyalar"""
         # Giriş kontrolü
         if not self.project_name.get().strip():
             messagebox.showerror("Hata", "Proje adı boş olamaz!")
@@ -1765,21 +2573,21 @@ ENV/
             messagebox.showerror("Hata", "Git repository bulunamadı!\nÖnce README adımında 'Repository Bağla' butonunu kullanın.")
             return
         
-        # Onay al - Boş commit için
+        # Onay al - Tüm dosyalar için
         project_name = self.project_name.get().strip()
         github_username = self.github_username.get().strip()
-        commit_message = self.commit_message.get().strip() or "Empty commit for repository setup"
+        commit_message = self.commit_message.get().strip() or "Final commit - Tüm dosyalar yayınlandı"
         target_branch = self.selected_branch.get()
         
-        confirm_text = f"""📋 Boş Commit Yayınlama:
+        confirm_text = f"""📋 Tüm Dosyaları Yayınlama:
 
 📁 Proje: {project_name}
 👤 GitHub: {github_username}
 💬 Commit: {commit_message}
 🌿 Branch: {target_branch}
 
-⚠️ Bu işlem sadece boş commit atacak.
-🚀 Dosya yayınlama son adımda yapılacak.
+⚠️ Bu işlem tüm proje dosyalarını yayınlayacak.
+🚀 Büyük dosyalar otomatik olarak filtrelenecek.
 
 ✅ Devam edilsin mi?"""
         
@@ -1790,20 +2598,20 @@ ENV/
         self.main_button.config(state="disabled")
         self.progress.start()
         
-        # Thread'de çalıştır
+        # Thread'de çalıştır - Tüm dosyalar için
         threading.Thread(target=self.publish_repository, daemon=True).start()
 
     def publish_repository(self):
-        """Sadece boş commit at - Dosya yayınlama son adımda"""
+        """Tüm dosyaları yayınla - Son adım"""
         try:
             project_name = self.project_name.get().strip()
             github_username = self.github_username.get().strip()
-            commit_message = self.commit_message.get().strip() or "Empty commit for repository setup"
+            commit_message = self.commit_message.get().strip() or "Final commit - Tüm dosyalar yayınlandı"
             target_branch = self.selected_branch.get() or "main"
             
             repo_url = f"https://github.com/{github_username}/{project_name}.git"
             
-            self.log_message("🚀 Boş commit yayınlama başlatılıyor...")
+            self.log_message("🚀 Tüm dosyalar yayınlanıyor...")
             
             # Git repository kontrolü
             git_dir = os.path.join(self.current_directory, ".git")
@@ -1828,164 +2636,66 @@ ENV/
                              shell=True, capture_output=True, text=True, cwd=self.current_directory, timeout=5)
                 self.log_message("📧 Git user.email ayarlandı")
             
-            # Boş commit at
-            self.log_message(f"💾 Boş commit atılıyor: {commit_message}")
-            result = subprocess.run(f'git commit --allow-empty -m "{commit_message}"', shell=True, 
-                                 capture_output=True, text=True, cwd=self.current_directory, timeout=10)
+            # Büyük dosyaları kontrol et ve filtrele
+            self.log_message("🔍 Büyük dosyalar kontrol ediliyor...")
+            self.detect_and_filter_large_files()
+            
+            # Tüm dosyaları ekle (büyük dosyalar hariç)
+            self.log_message("📁 Tüm dosyalar ekleniyor...")
+            result = subprocess.run("git add .", shell=True, capture_output=True, 
+                                 text=True, cwd=self.current_directory, timeout=120)
+            
+            if result.returncode != 0:
+                error_msg = result.stderr.strip() if result.stderr else "Bilinmeyen git add hatası"
+                self.log_message(f"⚠️ Git add hatası: {error_msg}")
+                raise Exception(f"Git add hatası: {error_msg}")
+            
+            self.log_message("✅ Tüm dosyalar eklendi")
+            
+            # Commit yap
+            self.log_message(f"💾 Final commit atılıyor: {commit_message}")
+            result = subprocess.run(f'git commit -m "{commit_message}"', shell=True, 
+                                 capture_output=True, text=True, cwd=self.current_directory, timeout=15)
             
             if result.returncode != 0:
                 error_msg = result.stderr.strip() if result.stderr else "Bilinmeyen commit hatası"
-                self.log_message(f"⚠️ Boş commit hatası: {error_msg}")
-                raise Exception(f"Boş commit hatası: {error_msg}")
+                self.log_message(f"⚠️ Commit hatası: {error_msg}")
+                raise Exception(f"Commit hatası: {error_msg}")
             
-            self.log_message("✅ Boş commit başarıyla atıldı")
+            self.log_message("✅ Final commit başarıyla atıldı")
             
             # Push işlemi
             self.log_message(f"🚀 '{target_branch}' branch'i GitHub'a push ediliyor...")
             result = subprocess.run(f"git push origin {target_branch}", shell=True, capture_output=True, 
-                                 text=True, cwd=self.current_directory, timeout=60)
+                                 text=True, cwd=self.current_directory, timeout=180)
             
             if result.returncode != 0:
                 error_msg = result.stderr.strip() if result.stderr else "Bilinmeyen push hatası"
                 self.log_message(f"⚠️ Push hatası: {error_msg}")
                 raise Exception(f"Push hatası: {error_msg}")
             
-            self.log_message("✅ Boş commit GitHub'a başarıyla push edildi!")
-            self.log_message("🎉 Repository hazırlandı - Son adımda dosyalar yayınlanacak")
+            self.log_message("✅ Tüm dosyalar GitHub'a başarıyla yayınlandı!")
+            self.log_message("🎉 Proje tamamen yayınlandı!")
             
             # Başarı mesajı göster
             self.root.after(0, lambda: messagebox.showinfo(
                 "Başarılı! 🎉",
-                f"✅ Boş commit başarıyla yayınlandı!\n\n"
+                f"✅ Tüm dosyalar başarıyla yayınlandı!\n\n"
                 f"📍 Repository: {repo_url}\n"
                 f"🌿 Branch: {target_branch}\n"
                 f"💬 Commit: {commit_message}\n\n"
-                "🚀 Son adımda tüm dosyalar yayınlanacak!"
+                "🚀 Proje tamamen yayınlandı!"
             ))
             
         except Exception as e:
-            self.log_message(f"❌ Boş commit yayınlama hatası: {e}")
-            self.root.after(0, lambda: messagebox.showerror("Hata", f"Boş commit yayınlama hatası:\n{e}"))
+            self.log_message(f"❌ Dosya yayınlama hatası: {e}")
+            self.root.after(0, lambda: messagebox.showerror("Hata", f"Dosya yayınlama hatası:\n{e}"))
         
         finally:
             # UI'ı güncelle
             self.root.after(0, self.publication_finished)
 
-    def publication_finished(self):
-        """Yayınlama işlemi tamamlandı"""
-        # Yayınlama tamamlandıktan sonra butonları güncelle
-        if hasattr(self, 'main_button'):
-            try:
-                if self.main_button.winfo_exists():
-                    self.main_button.config(state="normal")
-            except tk.TclError:
-                pass  # Widget referans hatası durumunda sessizce devam et
-        
-        # README adımındaki butonu da güncelle (eğer varsa)
-        if hasattr(self, 'connect_button_readme'):
-            try:
-                if self.connect_button_readme.winfo_exists():
-                    self.connect_button_readme.config(state="normal")
-            except tk.TclError:
-                pass  # Widget referans hatası durumunda sessizce devam et
-        
-        self.progress.stop()
-        self.check_git_status()
 
-    def list_folder_contents(self):
-        """Seçilen klasördeki dosyaları listele"""
-        try:
-            if not os.path.exists(self.current_directory):
-                return
-            
-            self.log_message(f"📋 Klasör içeriği ({self.current_directory}):")
-            self.log_message("-" * 50)
-            
-            # Dosya ve klasörleri listele
-            items = os.listdir(self.current_directory)
-            files = []
-            folders = []
-            
-            for item in items:
-                item_path = os.path.join(self.current_directory, item)
-                if os.path.isfile(item_path):
-                    files.append(item)
-                elif os.path.isdir(item_path):
-                    folders.append(item)
-            
-            # Klasörleri göster
-            if folders:
-                self.log_message("📁 Klasörler:")
-                for folder in sorted(folders):
-                    self.log_message(f"  📁 {folder}")
-            
-            # Dosyaları göster
-            if files:
-                self.log_message("📄 Dosyalar:")
-                for file in sorted(files):
-                    # Git, sistem ve gereksiz dosyaları gizle
-                    if not file.startswith('.') and file not in ['__pycache__', 'node_modules', 'build', 'dist', 'out', 'target']:
-                        self.log_message(f"  📄 {file}")
-            
-            # README.md kontrolü
-            readme_path = os.path.join(self.current_directory, "README.md")
-            if os.path.exists(readme_path):
-                self.log_message("✅ README.md dosyası bulundu")
-                self.readme_var.set("keep")  # Otomatik olarak koru seçeneğini seç
-            else:
-                self.log_message("ℹ️  README.md dosyası bulunamadı")
-                self.readme_var.set("create")  # Otomatik olarak oluştur seçeneğini seç
-            
-            self.log_message("-" * 50)
-            
-        except Exception as e:
-            self.log_message(f"❌ Klasör içeriği listelenirken hata: {e}")
-
-def main():
-    """Ana uygulama - modern tasarım"""
-    root = tk.Tk()
-    
-    # Modern tema ve stil ayarları
-    style = ttk.Style()
-    style.theme_use('clam')
-    
-    # Pencere ikonu ve başlık
-    try:
-        root.iconbitmap("icon.ico")  # Eğer icon dosyası varsa
-    except:
-        pass  # Icon yoksa devam et
-    
-    # Modern pencere ayarları
-    root.configure(bg="#ffffff")
-    root.option_add('*TFrame*background', '#ffffff')
-    root.option_add('*TLabel*background', '#ffffff')
-    
-    app = GitAutoGUI(root)
-    
-    # Pencere kapatma olayı - modern dialog
-    def on_closing():
-        if messagebox.askokcancel("🚪 Çıkış", 
-                                 "GitAuto'dan çıkmak istediğinizden emin misiniz?\n\n"
-                                 "Kaydedilmemiş değişiklikler kaybolabilir."):
-            root.destroy()
-    
-    root.protocol("WM_DELETE_WINDOW", on_closing)
-    
-    # Pencereyi ekranın ortasına yerleştir
-    root.update_idletasks()
-    x = (root.winfo_screenwidth() // 2) - (root.winfo_width() // 2)
-    y = (root.winfo_screenheight() // 2) - (root.winfo_height() // 2)
-    root.geometry(f"+{x}+{y}")
-    
-    # Pencereyi öne getir
-    root.lift()
-    root.attributes('-topmost', True)
-    root.after_idle(root.attributes, '-topmost', False)
-    
-    root.mainloop()
-
-if __name__ == "__main__":
-    main()
 
     def publication_finished(self):
         """Yayınlama işlemi tamamlandı"""
