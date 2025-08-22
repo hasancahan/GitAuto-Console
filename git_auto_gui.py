@@ -18,8 +18,11 @@ class GitAutoGUI:
     def __init__(self, root):
         self.root = root
         self.root.title("🚀 GitAuto - Otomatik Git Repository Yayınlama")
-        self.root.geometry("800x700")
+        self.root.geometry("900x800")
         self.root.resizable(True, True)
+        
+        # Modern stil tanımlamaları
+        self.setup_styles()
         
         # Ana değişkenler
         self.project_name = tk.StringVar()
@@ -50,134 +53,386 @@ class GitAutoGUI:
         # Branch listesini güncelle
         self.refresh_branches()
 
+    def setup_styles(self):
+        """Modern CSS-style buton ve widget stilleri tanımla"""
+        style = ttk.Style()
+        
+        # Primary buton stili (mavi)
+        style.configure("Primary.TButton",
+                       background="#2563eb",
+                       foreground="white",
+                       borderwidth=0,
+                       focuscolor="none",
+                       font=("Segoe UI", 10, "bold"))
+        
+        style.map("Primary.TButton",
+                 background=[("active", "#1d4ed8"), ("pressed", "#1e40af")],
+                 foreground=[("active", "white"), ("pressed", "white")])
+        
+        # Accent buton stili (yeşil)
+        style.configure("Accent.TButton",
+                       background="#059669",
+                       foreground="white",
+                       borderwidth=0,
+                       focuscolor="none",
+                       font=("Segoe UI", 10, "bold"))
+        
+        style.map("Accent.TButton",
+                 background=[("active", "#047857"), ("pressed", "#065f46")],
+                 foreground=[("active", "white"), ("pressed", "white")])
+        
+        # Secondary buton stili (gri)
+        style.configure("Secondary.TButton",
+                       background="#64748b",
+                       foreground="white",
+                       borderwidth=0,
+                       focuscolor="none",
+                       font=("Segoe UI", 10))
+        
+        style.map("Secondary.TButton",
+                 background=[("active", "#475569"), ("pressed", "#334155")],
+                 foreground=[("active", "white"), ("pressed", "white")])
+        
+        # Progress bar stili
+        style.configure("Accent.Horizontal.TProgressbar",
+                       background="#2563eb",
+                       troughcolor="#e2e8f0",
+                       borderwidth=0,
+                       lightcolor="#3b82f6",
+                       darkcolor="#1d4ed8")
+        
+        # LabelFrame stili
+        style.configure("TLabelframe",
+                       background="#ffffff",
+                       borderwidth=1,
+                       relief="solid")
+        
+        style.configure("TLabelframe.Label",
+                       font=("Segoe UI", 11, "bold"),
+                       foreground="#1e293b",
+                       background="#ffffff")
+        
+        # Entry stili
+        style.configure("TEntry",
+                       fieldbackground="#f8fafc",
+                       borderwidth=1,
+                       relief="solid",
+                       focuscolor="#2563eb")
+        
+        # Combobox stili
+        style.configure("TCombobox",
+                       fieldbackground="#f8fafc",
+                       borderwidth=1,
+                       relief="solid",
+                       focuscolor="#2563eb")
+        
+        # Frame stili
+        style.configure("TFrame",
+                       background="#ffffff")
+        
+        # Radiobutton stili
+        style.configure("TRadiobutton",
+                       background="#ffffff",
+                       font=("Segoe UI", 10),
+                       foreground="#1e293b")
+        
+        style.map("TRadiobutton",
+                 background=[("active", "#f1f5f9"), ("selected", "#dbeafe")],
+                 foreground=[("active", "#1e293b"), ("selected", "#1e40af")])
+        
+        # Scrollbar stili
+        style.configure("Vertical.TScrollbar",
+                       background="#e2e8f0",
+                       troughcolor="#f1f5f9",
+                       borderwidth=0,
+                       arrowcolor="#64748b",
+                       width=12)
+        
+        style.map("Vertical.TScrollbar",
+                 background=[("active", "#cbd5e1"), ("pressed", "#94a3b8")],
+                 arrowcolor=[("active", "#475569"), ("pressed", "#334155")])
+
     def create_widgets(self):
-        """Ana widget'ları oluştur"""
-        # Ana frame
-        main_frame = ttk.Frame(self.root, padding="10")
-        main_frame.grid(row=0, column=0, sticky=(tk.W, tk.E, tk.N, tk.S))
+        """Modern ve derli toplu widget'ları oluştur"""
+        # Ana scrollable canvas oluştur
+        canvas = tk.Canvas(self.root, bg="#ffffff", highlightthickness=0, width=860, height=760)
+        scrollbar = ttk.Scrollbar(self.root, orient="vertical", command=canvas.yview, style="Vertical.TScrollbar")
+        
+        # Scrollable frame
+        main_frame = ttk.Frame(canvas, padding="20", width=860)
+        
+        # Canvas scroll konfigürasyonu
+        canvas.configure(yscrollcommand=scrollbar.set)
         
         # Grid ağırlıkları
         self.root.columnconfigure(0, weight=1)
         self.root.rowconfigure(0, weight=1)
         main_frame.columnconfigure(1, weight=1)
         
-        # Başlık
-        title_label = ttk.Label(main_frame, text="🚀 GitAuto - Otomatik Git Repository Yayınlama", 
-                               font=("Arial", 16, "bold"))
-        title_label.grid(row=0, column=0, columnspan=3, pady=(0, 20))
+        # Canvas ve scrollbar yerleştir
+        canvas.grid(row=0, column=0, sticky=(tk.W, tk.E, tk.N, tk.S))
+        scrollbar.grid(row=0, column=1, sticky=(tk.N, tk.S))
         
-        # Proje bilgileri frame
-        project_frame = ttk.LabelFrame(main_frame, text="📁 Proje Bilgileri", padding="10")
-        project_frame.grid(row=1, column=0, columnspan=3, sticky=(tk.W, tk.E), pady=(0, 10))
+        # Canvas içinde frame'i yerleştir
+        canvas.create_window((0, 0), window=main_frame, anchor="nw", width=860)
+        
+        # Scroll fonksiyonu
+        def configure_scroll(event):
+            canvas.configure(scrollregion=canvas.bbox("all"))
+        
+        def on_mousewheel(event):
+            try:
+                # Windows için delta değeri
+                if hasattr(event, 'delta'):
+                    delta = int(-1 * (event.delta / 120))
+                    canvas.yview_scroll(delta, "units")
+                # Linux/Mac için delta değeri
+                elif hasattr(event, 'num'):
+                    if event.num == 4:
+                        canvas.yview_scroll(-1, "units")
+                    elif event.num == 5:
+                        canvas.yview_scroll(1, "units")
+                # Touchpad için
+                elif hasattr(event, 'delta'):
+                    canvas.yview_scroll(int(-1 * event.delta), "units")
+            except Exception as e:
+                # Hata durumunda varsayılan scroll
+                try:
+                    canvas.yview_scroll(-1, "units")
+                except:
+                    pass
+        
+        # Windows için mouse wheel binding
+        canvas.bind("<Configure>", configure_scroll)
+        canvas.bind("<MouseWheel>", on_mousewheel)
+        
+        # Linux/Mac için mouse wheel binding
+        canvas.bind("<Button-4>", lambda e: canvas.yview_scroll(-1, "units"))
+        canvas.bind("<Button-5>", lambda e: canvas.yview_scroll(1, "units"))
+        
+        # Touchpad için binding
+        canvas.bind("<B1-Motion>", lambda e: canvas.yview_scroll(int(e.delta), "units"))
+        
+        # Alternatif mouse wheel binding'ler
+        canvas.bind("<MouseWheel>", on_mousewheel, add="+")
+        canvas.bind("<Button-4>", lambda e: canvas.yview_scroll(-1, "units"), add="+")
+        canvas.bind("<Button-5>", lambda e: canvas.yview_scroll(1, "units"), add="+")
+        
+        # Scrollbar'a da mouse wheel binding ekle
+        scrollbar.bind("<MouseWheel>", on_mousewheel)
+        scrollbar.bind("<Button-4>", lambda e: canvas.yview_scroll(-1, "units"))
+        scrollbar.bind("<Button-5>", lambda e: canvas.yview_scroll(1, "units"))
+        
+        # Scrollbar'a alternatif binding'ler
+        scrollbar.bind("<MouseWheel>", on_mousewheel, add="+")
+        scrollbar.bind("<Button-4>", lambda e: canvas.yview_scroll(-1, "units"), add="+")
+        scrollbar.bind("<Button-5>", lambda e: canvas.yview_scroll(1, "units"), add="+")
+        
+        # Keyboard scroll desteği
+        canvas.bind("<Up>", lambda e: canvas.yview_scroll(-1, "units"))
+        canvas.bind("<Down>", lambda e: canvas.yview_scroll(1, "units"))
+        canvas.bind("<Page_Up>", lambda e: canvas.yview_scroll(-10, "units"))
+        canvas.bind("<Page_Down>", lambda e: canvas.yview_scroll(10, "units"))
+        canvas.bind("<Home>", lambda e: canvas.yview_moveto(0))
+        canvas.bind("<End>", lambda e: canvas.yview_moveto(1))
+        
+        # Frame genişliğini canvas'a göre ayarla
+        def on_frame_configure(event):
+            canvas.configure(scrollregion=canvas.bbox("all"))
+        
+        # Canvas boyutunu frame'e göre ayarla
+        def on_canvas_configure(event):
+            try:
+                # Canvas içindeki tüm item'ları bul
+                items = canvas.find_all()
+                if items:
+                    # İlk item'ı (main_frame) bul ve genişliğini ayarla
+                    canvas.itemconfig(items[0], width=event.width)
+            except:
+                pass
+        
+        main_frame.bind("<Configure>", on_frame_configure)
+        canvas.bind("<Configure>", on_canvas_configure)
+        
+        # Main frame'e de mouse wheel binding ekle
+        main_frame.bind("<MouseWheel>", on_mousewheel)
+        main_frame.bind("<Button-4>", lambda e: canvas.yview_scroll(-1, "units"))
+        main_frame.bind("<Button-5>", lambda e: canvas.yview_scroll(1, "units"))
+        
+        # Modern başlık - gradient efekti için frame
+        title_frame = ttk.Frame(main_frame)
+        title_frame.grid(row=0, column=0, columnspan=3, pady=(0, 30), sticky=(tk.W, tk.E))
+        title_frame.columnconfigure(0, weight=1)
+        
+        title_label = ttk.Label(title_frame, 
+                               text="🚀 GitAuto", 
+                               font=("Segoe UI", 24, "bold"),
+                               foreground="#2563eb")
+        title_label.grid(row=0, column=0, pady=(0, 5))
+        
+        subtitle_label = ttk.Label(title_frame, 
+                                  text="Otomatik Git Repository Yayınlama", 
+                                  font=("Segoe UI", 12),
+                                  foreground="#64748b")
+        subtitle_label.grid(row=1, column=0)
+        
+        # Proje bilgileri frame - modern card tasarımı
+        project_frame = ttk.LabelFrame(main_frame, text="📁 Proje Bilgileri", padding="20")
+        project_frame.grid(row=1, column=0, columnspan=3, sticky=(tk.W, tk.E), pady=(0, 20))
         project_frame.columnconfigure(1, weight=1)
         
-        # Proje klasörü seçimi
-        ttk.Label(project_frame, text="Proje Klasörü:").grid(row=0, column=0, sticky=tk.W, padx=(0, 10))
-        self.project_path_var = tk.StringVar(value=self.current_directory)
-        project_path_entry = ttk.Entry(project_frame, textvariable=self.project_path_var, width=40)
-        project_path_entry.grid(row=0, column=1, sticky=(tk.W, tk.E), padx=(0, 10))
+        # Proje klasörü seçimi - modern input tasarımı
+        folder_label = ttk.Label(project_frame, text="Proje Klasörü:", font=("Segoe UI", 10, "bold"))
+        folder_label.grid(row=0, column=0, sticky=tk.W, padx=(0, 15), pady=(0, 8))
         
-        browse_btn = ttk.Button(project_frame, text="📂 Klasör Seç", command=self.browse_folder)
-        browse_btn.grid(row=0, column=2, padx=(10, 0))
+        self.project_path_var = tk.StringVar(value=self.current_directory)
+        project_path_entry = ttk.Entry(project_frame, textvariable=self.project_path_var, 
+                                     font=("Segoe UI", 10), width=45)
+        project_path_entry.grid(row=0, column=1, sticky=(tk.W, tk.E), padx=(0, 15), pady=(0, 8))
+        
+        browse_btn = ttk.Button(project_frame, text="📂 Klasör Seç", 
+                               command=self.browse_folder, style="Accent.TButton")
+        browse_btn.grid(row=0, column=2, padx=(15, 0), pady=(0, 8))
         
         # Proje adı
-        ttk.Label(project_frame, text="Proje Adı:").grid(row=1, column=0, sticky=tk.W, padx=(0, 10))
-        project_entry = ttk.Entry(project_frame, textvariable=self.project_name, width=40)
-        project_entry.grid(row=1, column=1, sticky=(tk.W, tk.E), padx=(0, 10))
+        name_label = ttk.Label(project_frame, text="Proje Adı:", font=("Segoe UI", 10, "bold"))
+        name_label.grid(row=1, column=0, sticky=tk.W, padx=(0, 15), pady=(0, 8))
+        project_entry = ttk.Entry(project_frame, textvariable=self.project_name, 
+                                font=("Segoe UI", 10), width=45)
+        project_entry.grid(row=1, column=1, sticky=(tk.W, tk.E), padx=(0, 15), pady=(0, 8))
         
         # GitHub kullanıcı adı
-        ttk.Label(project_frame, text="GitHub Kullanıcı:").grid(row=2, column=0, sticky=tk.W, padx=(0, 10))
-        username_entry = ttk.Entry(project_frame, textvariable=self.github_username, width=40)
-        username_entry.grid(row=2, column=1, sticky=(tk.W, tk.E), padx=(0, 10))
+        user_label = ttk.Label(project_frame, text="GitHub Kullanıcı:", font=("Segoe UI", 10, "bold"))
+        user_label.grid(row=2, column=0, sticky=tk.W, padx=(0, 15), pady=(0, 8))
+        username_entry = ttk.Entry(project_frame, textvariable=self.github_username, 
+                                 font=("Segoe UI", 10), width=45)
+        username_entry.grid(row=2, column=1, sticky=(tk.W, tk.E), padx=(0, 15), pady=(0, 8))
         
         # Commit mesajı
-        ttk.Label(project_frame, text="Commit Mesajı:").grid(row=3, column=0, sticky=tk.W, padx=(0, 10))
-        commit_entry = ttk.Entry(project_frame, textvariable=self.commit_message, width=40)
-        commit_entry.grid(row=3, column=1, sticky=(tk.W, tk.E), padx=(0, 10))
+        commit_label = ttk.Label(project_frame, text="Commit Mesajı:", font=("Segoe UI", 10, "bold"))
+        commit_label.grid(row=3, column=0, sticky=tk.W, padx=(0, 15), pady=(0, 8))
+        commit_entry = ttk.Entry(project_frame, textvariable=self.commit_message, 
+                               font=("Segoe UI", 10), width=45)
+        commit_entry.grid(row=3, column=1, sticky=(tk.W, tk.E), padx=(0, 15), pady=(0, 8))
         
-        # README.md yönetimi frame
-        readme_frame = ttk.LabelFrame(main_frame, text="📖 README.md Yönetimi", padding="10")
-        readme_frame.grid(row=2, column=0, columnspan=3, sticky=(tk.W, tk.E), pady=(0, 10))
+        # README.md yönetimi frame - modern card tasarımı
+        readme_frame = ttk.LabelFrame(main_frame, text="📖 README.md Yönetimi", padding="20")
+        readme_frame.grid(row=2, column=0, columnspan=3, sticky=(tk.W, tk.E), pady=(0, 20))
         readme_frame.columnconfigure(1, weight=1)
         
-        # README seçenekleri
+        # README seçenekleri - modern radio button tasarımı
         self.readme_var = tk.StringVar(value="keep")
-        ttk.Radiobutton(readme_frame, text="📝 Mevcut README.md'yi koru (önerilen)", 
-                       variable=self.readme_var, value="keep").grid(row=0, column=0, columnspan=2, sticky=tk.W)
-        ttk.Radiobutton(readme_frame, text="🔄 GitAuto ile yeni README.md oluştur", 
-                       variable=self.readme_var, value="create").grid(row=1, column=0, columnspan=2, sticky=tk.W)
+        readme_keep = ttk.Radiobutton(readme_frame, text="📝 Mevcut README.md'yi koru (önerilen)", 
+                                     variable=self.readme_var, value="keep")
+        readme_keep.grid(row=0, column=0, columnspan=2, sticky=tk.W, pady=(0, 8))
         
-        # Branch yönetimi frame
-        branch_frame = ttk.LabelFrame(main_frame, text="🌿 Branch Yönetimi", padding="10")
-        branch_frame.grid(row=3, column=0, columnspan=3, sticky=(tk.W, tk.E), pady=(0, 10))
+        readme_create = ttk.Radiobutton(readme_frame, text="🔄 GitAuto ile yeni README.md oluştur", 
+                                       variable=self.readme_var, value="create")
+        readme_create.grid(row=1, column=0, columnspan=2, sticky=tk.W, pady=(0, 8))
+        
+        # Branch yönetimi frame - modern card tasarımı
+        branch_frame = ttk.LabelFrame(main_frame, text="🌿 Branch Yönetimi", padding="20")
+        branch_frame.grid(row=3, column=0, columnspan=3, sticky=(tk.W, tk.E), pady=(0, 20))
         branch_frame.columnconfigure(1, weight=1)
         
-        # Branch seçimi
-        ttk.Label(branch_frame, text="Hedef Branch:").grid(row=0, column=0, sticky=tk.W, padx=(0, 10))
+        # Branch seçimi - modern input tasarımı
+        branch_label = ttk.Label(branch_frame, text="Hedef Branch:", font=("Segoe UI", 10, "bold"))
+        branch_label.grid(row=0, column=0, sticky=tk.W, padx=(0, 15), pady=(0, 8))
+        
         self.branch_combo = ttk.Combobox(branch_frame, textvariable=self.selected_branch, 
-                                        values=["main", "master", "develop"], width=20, state="readonly")
-        self.branch_combo.grid(row=0, column=1, sticky=tk.W, padx=(0, 10))
+                                        values=["main", "master", "develop"], width=25, 
+                                        state="readonly", font=("Segoe UI", 10))
+        self.branch_combo.grid(row=0, column=1, sticky=tk.W, padx=(0, 15), pady=(0, 8))
         
-        # Branch yenile butonu
-        refresh_btn = ttk.Button(branch_frame, text="🔄", command=self.refresh_branches, width=3)
-        refresh_btn.grid(row=0, column=2, padx=(5, 0))
+        # Branch yenile butonu - modern icon buton
+        refresh_btn = ttk.Button(branch_frame, text="🔄", command=self.refresh_branches, 
+                                width=4, style="Accent.TButton")
+        refresh_btn.grid(row=0, column=2, padx=(15, 0), pady=(0, 8))
         
-        # Yeni branch oluştur
-        ttk.Label(branch_frame, text="Yeni Branch:").grid(row=1, column=0, sticky=tk.W, padx=(0, 10))
+        # Yeni branch oluştur - modern input tasarımı
+        new_branch_label = ttk.Label(branch_frame, text="Yeni Branch:", font=("Segoe UI", 10, "bold"))
+        new_branch_label.grid(row=1, column=0, sticky=tk.W, padx=(0, 15), pady=(0, 8))
+        
         self.new_branch_var = tk.StringVar()
-        new_branch_entry = ttk.Entry(branch_frame, textvariable=self.new_branch_var, width=20)
-        new_branch_entry.grid(row=1, column=1, sticky=tk.W, padx=(0, 10))
+        new_branch_entry = ttk.Entry(branch_frame, textvariable=self.new_branch_var, 
+                                   width=25, font=("Segoe UI", 10))
+        new_branch_entry.grid(row=1, column=1, sticky=tk.W, padx=(0, 15), pady=(0, 8))
         
         create_branch_btn = ttk.Button(branch_frame, text="🌱 Branch Oluştur", 
-                                     command=self.create_new_branch)
-        create_branch_btn.grid(row=1, column=2, padx=(10, 0))
+                                     command=self.create_new_branch, style="Accent.TButton")
+        create_branch_btn.grid(row=1, column=2, padx=(15, 0), pady=(0, 8))
         
-        # Mevcut branch'leri listele
-        list_branches_btn = ttk.Button(branch_frame, text="📋 Branch'leri Listele", 
-                                     command=self.list_branches)
-        list_branches_btn.grid(row=2, column=0, columnspan=2, pady=(10, 0))
+        # Buton satırı - modern buton tasarımı
+        button_frame = ttk.Frame(branch_frame)
+        button_frame.grid(row=2, column=0, columnspan=3, pady=(15, 0))
+        button_frame.columnconfigure(0, weight=1)
+        button_frame.columnconfigure(1, weight=1)
         
-        # Repository temizle butonu
-        clean_btn = ttk.Button(branch_frame, text="🧹 Repository Temizle", 
-                             command=self.clean_repository)
-        clean_btn.grid(row=2, column=2, pady=(10, 0))
+        list_branches_btn = ttk.Button(button_frame, text="📋 Branch'leri Listele", 
+                                     command=self.list_branches, style="Secondary.TButton")
+        list_branches_btn.grid(row=0, column=0, padx=(0, 10))
         
-        # Git durumu frame
-        status_frame = ttk.LabelFrame(main_frame, text="🔍 Git Durumu", padding="10")
-        status_frame.grid(row=4, column=0, columnspan=3, sticky=(tk.W, tk.E), pady=(0, 10))
+        clean_btn = ttk.Button(button_frame, text="🧹 Repository Temizle", 
+                             command=self.clean_repository, style="Secondary.TButton")
+        clean_btn.grid(row=0, column=1, padx=(10, 0))
+        
+        # Git durumu frame - modern card tasarımı
+        status_frame = ttk.LabelFrame(main_frame, text="🔍 Git Durumu", padding="20")
+        status_frame.grid(row=4, column=0, columnspan=3, sticky=(tk.W, tk.E), pady=(0, 20))
         status_frame.columnconfigure(1, weight=1)
         
-        # Git durum etiketleri
-        self.git_status_label = ttk.Label(status_frame, text="Git durumu kontrol ediliyor...")
-        self.git_status_label.grid(row=0, column=0, columnspan=2, sticky=tk.W)
+        # Git durum etiketleri - modern status tasarımı
+        self.git_status_label = ttk.Label(status_frame, text="Git durumu kontrol ediliyor...", 
+                                        font=("Segoe UI", 10))
+        self.git_status_label.grid(row=0, column=0, columnspan=2, sticky=tk.W, pady=(0, 8))
         
-        self.repo_status_label = ttk.Label(status_frame, text="Repository durumu kontrol ediliyor...")
-        self.repo_status_label.grid(row=1, column=0, columnspan=2, sticky=tk.W)
+        self.repo_status_label = ttk.Label(status_frame, text="Repository durumu kontrol ediliyor...", 
+                                         font=("Segoe UI", 10))
+        self.repo_status_label.grid(row=1, column=0, columnspan=2, sticky=tk.W, pady=(0, 8))
         
-        # Repository bağlama butonu
-        self.connect_button = ttk.Button(main_frame, text="🔗 Repository Bağla", 
-                                       command=self.connect_repository, style="Accent.TButton")
-        self.connect_button.grid(row=5, column=0, columnspan=1, pady=20, padx=(0, 10))
+        # Ana butonlar frame - modern buton tasarımı
+        button_main_frame = ttk.Frame(main_frame)
+        button_main_frame.grid(row=5, column=0, columnspan=3, pady=(20, 0))
+        button_main_frame.columnconfigure(0, weight=1)
+        button_main_frame.columnconfigure(1, weight=1)
         
-        # Ana işlem butonu
-        self.main_button = ttk.Button(main_frame, text="🚀 Repository'yi Yayınla", 
-                                     command=self.start_publication, style="Accent.TButton")
-        self.main_button.grid(row=5, column=1, columnspan=2, pady=20)
+        # Repository bağlama butonu - modern primary buton
+        self.connect_button = ttk.Button(button_main_frame, text="🔗 Repository Bağla", 
+                                       command=self.connect_repository, style="Primary.TButton")
+        self.connect_button.grid(row=0, column=0, padx=(0, 10))
         
-        # Log frame
-        log_frame = ttk.LabelFrame(main_frame, text="📋 İşlem Logları", padding="10")
-        log_frame.grid(row=6, column=0, columnspan=3, sticky=(tk.W, tk.E, tk.N, tk.S), pady=(0, 10))
+        # Ana işlem butonu - modern primary buton
+        self.main_button = ttk.Button(button_main_frame, text="🚀 Repository'yi Yayınla", 
+                                     command=self.start_publication, style="Primary.TButton")
+        self.main_button.grid(row=0, column=1, padx=(10, 0))
+        
+        # Log frame - modern card tasarımı
+        log_frame = ttk.LabelFrame(main_frame, text="📋 İşlem Logları", padding="20")
+        log_frame.grid(row=6, column=0, columnspan=3, sticky=(tk.W, tk.E, tk.N, tk.S), pady=(0, 20))
         log_frame.columnconfigure(0, weight=1)
         log_frame.rowconfigure(0, weight=1)
         main_frame.rowconfigure(6, weight=1)
         
-        # Log text widget
-        self.log_text = scrolledtext.ScrolledText(log_frame, height=15, width=80)
-        self.log_text.grid(row=0, column=0, sticky=(tk.W, tk.E, tk.N, tk.S))
+        # Log text widget - modern text tasarımı
+        self.log_text = scrolledtext.ScrolledText(log_frame, height=12, width=80, 
+                                                font=("Consolas", 9), 
+                                                bg="#f8fafc", fg="#1e293b",
+                                                insertbackground="#2563eb")
+        self.log_text.grid(row=0, column=0, sticky=(tk.W, tk.E, tk.E, tk.S))
         
-        # Progress bar
-        self.progress = ttk.Progressbar(main_frame, mode='indeterminate')
-        self.progress.grid(row=7, column=0, columnspan=3, sticky=(tk.W, tk.E), pady=(0, 10))
+        # Progress bar - modern progress tasarımı
+        progress_frame = ttk.Frame(main_frame)
+        progress_frame.grid(row=7, column=0, columnspan=3, sticky=(tk.W, tk.E), pady=(0, 20))
+        progress_frame.columnconfigure(0, weight=1)
+        
+        self.progress = ttk.Progressbar(progress_frame, mode='indeterminate', 
+                                       style="Accent.Horizontal.TProgressbar")
+        self.progress.grid(row=0, column=0, sticky=(tk.W, tk.E), pady=(0, 10))
+        
+        # Status bar - modern status tasarımı
+        self.status_bar = ttk.Label(progress_frame, text="Hazır", 
+                                   font=("Segoe UI", 9), foreground="#64748b")
+        self.status_bar.grid(row=1, column=0, sticky=tk.W)
 
     def check_git_status(self):
         """Git durumunu kontrol et"""
@@ -881,30 +1136,45 @@ class GitAutoGUI:
             self.log_message(f"❌ Klasör içeriği listelenirken hata: {e}")
 
 def main():
-    """Ana uygulama"""
+    """Ana uygulama - modern tasarım"""
     root = tk.Tk()
     
-    # Stil ayarları
+    # Modern tema ve stil ayarları
     style = ttk.Style()
     style.theme_use('clam')
     
-    # Accent buton stili
-    style.configure("Accent.TButton", background="#0078d4", foreground="white")
+    # Pencere ikonu ve başlık
+    try:
+        root.iconbitmap("icon.ico")  # Eğer icon dosyası varsa
+    except:
+        pass  # Icon yoksa devam et
+    
+    # Modern pencere ayarları
+    root.configure(bg="#ffffff")
+    root.option_add('*TFrame*background', '#ffffff')
+    root.option_add('*TLabel*background', '#ffffff')
     
     app = GitAutoGUI(root)
     
-    # Pencere kapatma olayı
+    # Pencere kapatma olayı - modern dialog
     def on_closing():
-        if messagebox.askokcancel("Çıkış", "GitAuto'dan çıkmak istediğinizden emin misiniz?"):
+        if messagebox.askokcancel("🚪 Çıkış", 
+                                 "GitAuto'dan çıkmak istediğinizden emin misiniz?\n\n"
+                                 "Kaydedilmemiş değişiklikler kaybolabilir."):
             root.destroy()
     
     root.protocol("WM_DELETE_WINDOW", on_closing)
     
-    # Pencereyi ortala
+    # Pencereyi ekranın ortasına yerleştir
     root.update_idletasks()
     x = (root.winfo_screenwidth() // 2) - (root.winfo_width() // 2)
     y = (root.winfo_screenheight() // 2) - (root.winfo_height() // 2)
     root.geometry(f"+{x}+{y}")
+    
+    # Pencereyi öne getir
+    root.lift()
+    root.attributes('-topmost', True)
+    root.after_idle(root.attributes, '-topmost', False)
     
     root.mainloop()
 
